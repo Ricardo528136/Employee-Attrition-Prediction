@@ -220,3 +220,81 @@ def plot_numeric_by_target(df: pd.DataFrame, num_cols, target_col: str = TARGET_
             plt.savefig(FIG_DIR / f"{col}_by_{target_col}_{kind}.png", dpi=150)
         plt.show()
     
+def plot_cat_attrition_rate(df: pd.DataFrame, cat_cols, target_col: str = TARGET_COL, top_n=20, save=True):
+    """Plot attrition rate by categorical columns. For large-cardinality columns, only show top N levels."""
+    for col in cat_cols:
+        if col == target_col:
+            continue
+        stats_df = df.groupby(col)[target_col].apply(lambda s: s.eq('Yes').mean()*100).reset_index(name="attrition_rate_pct")
+        counts = df[col].value_counts()
+        if len(stats_df) > top_n:
+            stats_df = stats_df[stats_df[col].isin(top_levels)]
+        plt.figure(figsize=(6, 4))
+        sns.barplot(data=stats_df, x=col, y="attrition_rate_pct", orient="h")
+        plt.title(f"Attrition Rate by {col}")
+        plt.xlabel("Attrition Rate (%)")
+        plt.ylabel(col)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        if save:
+            plt.savefig(FIG_DIR / f"{col}_attrition_rate.png", dpi=150)
+        plt.show()
+    
+def plot_correlation_heatmap(df: pd.DataFrame, num_cols, target_col: str = TARGET_COL, save=True):
+    """Plot correlation heatmap for numeric columns"""
+    df_corr = df[num_cols].corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df_corr, annot=False, cmap="coolwarm", center=0)
+    plt.title("Correlation Heatmap")
+    plt.tight_layout()
+    if save:
+        plt.savefig(FIG_DIR / "correlation_heatmap.png", dpi=150)
+    plt.show()
+
+def plot_interactive_scatter(df: pd.DataFrame, fields, color=TARGET_COL):
+    """Plot an interactive scatter plot using Plotly."""
+    if not _HAS_PLOTLY:
+        print("Plotly is not installed. Skipping interactive plots.")
+        return
+    fig = px.scatter(df, dimensions=fields, color=color, title='Scatter Matrix')
+    fig.update_traces(diagonal_visible=False)
+    fig.show()
+
+# Save Helpers
+
+def save_table(df: pd.DataFrame, name: str):
+    """Save a DataFrame."""
+    csv_path = TABLE_DIR / f"{name}.csv"
+    xlsx_path = TABLE_DIR / f"{name}.xlsx"
+    df.to_csv(csv_path, index=False)
+    with pd.ExcelWriter(xlsx_path, engine='openpyxl') as xlw:
+        df.to_excel(xlw, index=False, sheet_name="Sheet1")
+    print(f"Saved {name} to {csv_path} and {xlsx_path}")
+
+# Main EDA Function
+
+def run_eda():
+    df_raw = load_data(CSV_PATH)
+
+    # Basic Overview
+    basic_overview(df_raw, target_col=TARGET_COL)
+
+    # Find constant columns
+    const_cols = find_constant_columns(df_raw)
+    if const_cols:
+        print(f"\nConstant columns (single unique value, likely not useful): {const_cols}")
+    
+    # Missing values summary
+    missing_df = missing_summary(df_raw)
+    print("\nMissing Values Summary:")
+    display(missing_df)
+    save_table(missing_df.reset_index().rename(columns={'index': 'variable'}), "missing_summary")
+
+    # Infer variable types
+    cat_cols, num_cols, id_cols = infer_variable_types(
+        df_raw, 
+        force_cat=FORCE_CATEGORICAL, 
+        force_num=FORCE_NUMERIC, 
+        id_cols=ID_COLS
+        
+    )
