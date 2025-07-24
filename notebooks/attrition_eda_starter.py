@@ -174,6 +174,17 @@ def summarize_numeric(df: pd.DataFrame, num_cols, target_col: str = TARGET_COL) 
         summaries.append(summary)
     return pd.DataFrame(summaries)
 
+def chi_square_of_cats(df: pd.DataFrame, cat_col: str, target_col: str = TARGET_COL):
+    """Perform Chi-Square test of independence between a categorical column and the target."""
+    contingency = pd.crosstab(df[cat_col], df[target_col], dropna=False)
+    chi2, p, dof, expected = stats.chi2_contingency(contingency)
+    return {
+        "variable": cat_col,
+        "chi2": chi2,
+        "pvalue": p,
+        "dof": dof
+    }
+
 def encode_target_binary(df: pd.DataFrame, target_col: str = TARGET_COL) -> pd.Series:
     """Return binary target: 1 if Yes, 0 if No (case-insensitive)."""
     return df[target_col].str.strip().str.lower().eq('yes').astype(int)
@@ -182,3 +193,30 @@ def encode_target_binary(df: pd.DataFrame, target_col: str = TARGET_COL) -> pd.S
 
 sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
+def plot_target_distribution(df: pd.DataFrame, target_col: str = TARGET_COL, save=True):
+    """Plot target distribution as a count plot."""
+    plt.figure(figsize=(4,4))
+    ax = sns.countplot(data=df, x=target_col, order=df[target_col].value_counts().index)
+    plt.title("Attrition Counts")
+    plt.ylabel("Count")
+    plt.tight_layout()
+    if save:
+        plt.savefig(FIG_DIR / f"target_distribution_{target_col}.png", dpi=150)
+    plt.show()
+
+def plot_numeric_by_target(df: pd.DataFrame, num_cols, target_col: str = TARGET_COL, kind="box", save=True):
+    """Plot numeric columns by target using box or violin plots."""
+    for col in num_cols:
+        plt.figure(figsize=(5,4))
+        if kind == "violin":
+            sns.violinplot(data=df, x=target_col, y=col, inner="quartile")
+        elif kind == "hist":
+            sns.histplot(data=df, x=col, hue=target_col, bins=30, kde=True, stat="density", common_norm=False)
+        else:
+            sns.boxplot(data=df, x=target_col, y=col)
+        plt.title(f"{col} by {target_col}")
+        plt.tight_layout()
+        if save:
+            plt.savefig(FIG_DIR / f"{col}_by_{target_col}_{kind}.png", dpi=150)
+        plt.show()
+    
