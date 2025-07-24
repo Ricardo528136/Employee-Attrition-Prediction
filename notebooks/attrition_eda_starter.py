@@ -296,5 +296,91 @@ def run_eda():
         force_cat=FORCE_CATEGORICAL, 
         force_num=FORCE_NUMERIC, 
         id_cols=ID_COLS
-        
+        max_cat_unique=20
     )
+
+    print("\nColumn Type Inference:")
+    print(f"Categorical columns ({len(cat_cols)}): {cat_cols}")
+    print(f"Numeric columns ({len(num_cols)}): {num_cols}")
+    print(f"ID-like columns ({len(id_cols)}): {id_cols}")
+
+    # Summaries
+    cat_summary = summarize_categorical(df_raw, cat_cols, target_col=TARGET_COL)
+    save_table(cat_summary, "categorical_summary")
+
+    num_summary = summarize_numeric(df_raw, num_cols, target_col=TARGET_COL)
+    save_table(num_summary, "numeric_summary")
+
+    # Chi-Square tests for categorical variables
+    chi_rows = []
+    for col in cat_cols:
+        if col == TARGET_COL:
+            continue
+        chi_rows.append(chi_square_of_cats(df_raw, col, target_col=TARGET_COL))
+    chi_df = pd.DataFrame(chi_rows).sort_values(by='pvalue')
+    save_table(chi_df, "chi_square_results")
+
+    # Plots 
+    plot_target_distribution(df_raw, target_col=TARGET_COL)
+    plot_numeric_by_target(df_raw, num_cols, target_col=TARGET_COL, kind="box")
+    plot_numeric_by_target(df_raw, num_cols, target_col=TARGET_COL, kind="hist")
+    plot_cat_attrition_rate(df_raw, cat_cols, target_col=TARGET_COL)
+    if num_cols:
+        plot_correlation_heatmap(df_raw, num_cols, target_col=TARGET_COL)
+    fields = [col for col in ['Age', 'MonthlyIncome', 'YearsAtCompany', 'JobSatisfaction'] if col in df_raw.columns]
+    if fields and _HAS_PLOTLY:
+        plot_interactive_scatter(df_raw, fields, color=TARGET_COL)
+    
+    # Prepare cleaned data
+    df_clean = df_raw.copy()
+
+    # Drop constant columns
+    drop_cols = const_cols
+    drop_cols = [c for c in drop_cols if c in df_clean.columns]
+    if drop_cols:
+        df_clean = df_clean.drop(columns=drop_cols)
+    
+    # Encode target variable
+    if TARGET_COL in df_clean.columns:
+        df_clean[TARGET_COL] = encode_target_binary(df_clean, target_col=TARGET_COL)
+    
+    # Basic label encoding for categorical variables
+    le = LabelEncoder()
+    for col in cat_cols:
+        if col == TARGET_COL:
+            continue
+        df_clean[col+'_LE'] = le.fit_transform(df_clean[col].astype(str))
+    
+    # Save cleaned data
+    cleaned_path = CLEAN_DIR / "cleaned_data.csv"
+    df_clean.to_csv(cleaned_path, index=False)
+    print(f"\nCleaned data saved to {cleaned_path}")
+
+    # Save schema/ metadata JSON
+    meta = {
+        "target_column": TARGET_COL,
+        "id_columns": id_cols_final,
+        "categorical_columns": cat_cols,
+        "numerical_columns": num_cols,
+        "constant_columns": const_cols,
+        "n_rows": df_clean.shape[0],
+        "n_columns": df_clean.shape[1],
+    }
+    meta_path = OUTPUT_DIR / "metadata.json"
+    with open(meta_path, 'w') as f:
+        json.dump(meta, f, indent=2)
+    print(f"\nMetadata saved to {meta_path}")
+
+     print("\nEDA complete.")
+    return {
+        "raw_df": df_raw,
+        "clean_df": df_clean,
+        "cat_summary": cat_summary,
+        "num_summary": num_summary,
+        "chi_df": chi_df,
+        "meta": meta,
+    }
+
+# Script entry point
+if __name__ == "__main__":
+    _ = run_eda()
