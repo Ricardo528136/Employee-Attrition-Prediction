@@ -1,0 +1,51 @@
+{
+  "target_column": "Attrition",
+  "id_columns": [
+    "EmployeeCount",
+    "EmployeeNumber",
+    "Over18",
+    "StandardHours"
+  ],
+  "categorical_columns": [
+    "Attrition",
+    "BusinessTravel",
+    "Department",
+    "Education",
+    "EducationField",
+    "EnvironmentSatisfaction",
+    "Gender",
+    "JobInvolvement",
+    "JobLevel",
+    "JobRole",
+    "JobSatisfaction",
+    "MaritalStatus",
+    "NumCompaniesWorked",
+    "OverTime",
+    "PercentSalaryHike",
+    "PerformanceRating",
+    "RelationshipSatisfaction",
+    "StockOptionLevel",
+    "TrainingTimesLastYear",
+    "WorkLifeBalance",
+    "YearsInCurrentRole",
+    "YearsSinceLastPromotion",
+    "YearsWithCurrManager"
+  ],
+  "numerical_columns": [
+    "Age",
+    "DailyRate",
+    "DistanceFromHome",
+    "HourlyRate",
+    "MonthlyIncome",
+    "MonthlyRate",
+    "TotalWorkingYears",
+    "YearsAtCompany"
+  ],
+  "constant_columns": [
+    "EmployeeCount",
+    "Over18",
+    "StandardHours"
+  ],
+  "n_rows": 1470,
+  "n_columns": 54
+}

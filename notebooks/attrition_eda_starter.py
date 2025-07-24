@@ -25,7 +25,7 @@ pd.set_option('display.max_columns', 100)
 
 # Ensure the script is run from the correct directory -- EDIT THESE PATHS
 # Path to the CSV file
-CSV_PATH = Path(data\WA_Fn-UseC_-HR-Employee-Attrition.csv)
+CSV_PATH = Path("data\Raw-HR-Employee-Attrition.csv")
 if not CSV_PATH.exists():
     print(f"CSV file not found at {CSV_PATH}. Please check the path.")
     sys.exit(1)
@@ -75,7 +75,7 @@ def basic_overview(df: pd.DataFrame, target_col: str = TARGET_COL):
         print("\nTarget distribution (counts & percentages):")
         counts = df[target_col].value_counts(dropna=False)
         perc = counts / len(df) * 100
-        display(pd.DataFrame({"count": counts, "percentage": perc.round(2)}))
+        print(pd.DataFrame({"count": counts, "percentage": perc.round(2)}))
 
 def find_constant_columns(df: pd.DataFrame):
     """Find columns with a single unique value."""
@@ -228,9 +228,10 @@ def plot_cat_attrition_rate(df: pd.DataFrame, cat_cols, target_col: str = TARGET
         stats_df = df.groupby(col)[target_col].apply(lambda s: s.eq('Yes').mean()*100).reset_index(name="attrition_rate_pct")
         counts = df[col].value_counts()
         if len(stats_df) > top_n:
+            top_levels = counts.index[:top_n]
             stats_df = stats_df[stats_df[col].isin(top_levels)]
         plt.figure(figsize=(6, 4))
-        sns.barplot(data=stats_df, x=col, y="attrition_rate_pct", orient="h")
+        sns.barplot(data=stats_df, y=col, x="attrition_rate_pct", orient="h")
         plt.title(f"Attrition Rate by {col}")
         plt.xlabel("Attrition Rate (%)")
         plt.ylabel(col)
@@ -256,7 +257,7 @@ def plot_interactive_scatter(df: pd.DataFrame, fields, color=TARGET_COL):
     if not _HAS_PLOTLY:
         print("Plotly is not installed. Skipping interactive plots.")
         return
-    fig = px.scatter(df, dimensions=fields, color=color, title='Scatter Matrix')
+    fig = px.scatter_matrix(df, dimensions=fields, color=color, title='Scatter Matrix')
     fig.update_traces(diagonal_visible=False)
     fig.show()
 
@@ -287,7 +288,7 @@ def run_eda():
     # Missing values summary
     missing_df = missing_summary(df_raw)
     print("\nMissing Values Summary:")
-    display(missing_df)
+    print(missing_df)
     save_table(missing_df.reset_index().rename(columns={'index': 'variable'}), "missing_summary")
 
     # Infer variable types
@@ -295,7 +296,7 @@ def run_eda():
         df_raw, 
         force_cat=FORCE_CATEGORICAL, 
         force_num=FORCE_NUMERIC, 
-        id_cols=ID_COLS
+        id_cols=ID_COLS,
         max_cat_unique=20
     )
 
@@ -359,7 +360,7 @@ def run_eda():
     # Save schema/ metadata JSON
     meta = {
         "target_column": TARGET_COL,
-        "id_columns": id_cols_final,
+        "id_columns": id_cols,
         "categorical_columns": cat_cols,
         "numerical_columns": num_cols,
         "constant_columns": const_cols,
@@ -371,7 +372,7 @@ def run_eda():
         json.dump(meta, f, indent=2)
     print(f"\nMetadata saved to {meta_path}")
 
-     print("\nEDA complete.")
+    print("\nEDA complete.")
     return {
         "raw_df": df_raw,
         "clean_df": df_clean,
