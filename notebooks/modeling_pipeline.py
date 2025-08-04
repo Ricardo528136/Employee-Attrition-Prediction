@@ -104,7 +104,7 @@ for model_name, model in models.items():
     plt.close()
 
     # Save ROC curve
-    fpr, tpr, _ = roc_curve(y_test.map({'No': 0, 'Yes': 1}), y_proba)
+    fpr, tpr, _ = roc_curve(y_test, y_proba)
     plt.figure(figsize=(8, 6))
     plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.2f}")
     plt.plot([0, 1], [0, 1], 'k--')
